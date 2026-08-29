@@ -12,6 +12,7 @@
 
 #include <info.h>
 #include <FMX.Colors.hpp>
+#include <FMX.Objects.hpp>
 //---------------------------------------------------------------------------
 class TForm2 : public TForm
 {
@@ -56,19 +57,29 @@ __published:	// IDE-managed Components
 	TButton *Button1;
 	TButton *BZero;
 	TButton *BTest;
+	TButton *BHelp;
+	TLabel *LStatus;
 	void __fastcall Button_Click(TObject *Sender);
 	void __fastcall FormKeyDown(TObject *Sender, WORD &Key, System::WideChar &KeyChar,
           TShiftState Shift);
 	void __fastcall BSolveClick(TObject *Sender);
 	void __fastcall BZeroClick(TObject *Sender);
 	void __fastcall BTestClick(TObject *Sender);
+	void __fastcall BHelpClick(TObject *Sender);
 private:	// User declarations
-	TButton* btn_v[36];
-	bool esperandoNumero = false;
-	int tagBotonEsperandoNumero;
-    info_C info;
+	TButton*    btn_v [NUM_CELDAS];
+	TRectangle* mark_v[NUM_CELDAS];   /* background of every cell, drawn on top of the button */
+	int         cursorPos = 0;        /* cell currently selected, 0..NUM_CELDAS-1 */
+	info_C info;
+
+	void layout_board();
+	TRectangle* new_line(float x, float y, float w, float h);
+	void draw_grid();
 
 	void refresh_panel();
+	void move_cursor(int dRow, int dCol);
+	void show_help();
+	void do_solve();
 public:		// User declarations
 	__fastcall TForm2(TComponent* Owner);
 };

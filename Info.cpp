@@ -53,7 +53,7 @@ Value[35] = 3;*/
 }
 
 bool info_C::EsValido(int pos, int numero){
-	// comprobar fila
+	// check the row
 	for (int c = 0; c < 6; c++) {
 		int p = celda_fila[pos] * 6 + c;
 
@@ -62,7 +62,7 @@ bool info_C::EsValido(int pos, int numero){
 		}
 	}
 
-	// comprobar columna
+	// check the column
 	for (int f=0; f < 6; f++) {
 		int p = f * 6 + celda_columna[pos];
 
@@ -71,7 +71,7 @@ bool info_C::EsValido(int pos, int numero){
 		}
 	}
 
-	// comprobar SuperCelda
+	// check the block, 2 rows x 3 columns
 	for (int f = celda_superCeldaFilaIni[pos];
 			f < celda_superCeldaFilaIni[pos]+2;
 			f++) {
@@ -90,20 +90,73 @@ bool info_C::EsValido(int pos, int numero){
 }
 
 
+// true when both cells share a row, a column or a block, that is, when the
+// sudoku rules forbid them to hold the same value
+bool info_C::same_group(int a, int b){
+	if (celda_fila[a] == celda_fila[b]) {
+		return true;
+	}
+
+	if (celda_columna[a] == celda_columna[b]) {
+		return true;
+	}
+
+	return celda_superCeldaFilaIni[a] == celda_superCeldaFilaIni[b]
+		&& celda_superCeldaColIni [a] == celda_superCeldaColIni [b];
+}
+
+// true when the value the user wrote in this cell is repeated in another cell
+// of the same row, column or block.
+// Only the cells of the problem are compared, the ones filled in by solve()
+// are correct by construction and are ignored here
+bool info_C::conflict(int pos){
+	if (!fixed[pos] || value[pos] == 0) {
+		return false;
+	}
+
+	for (int q = 0; q < NUM_CELDAS; q++) {
+		if (q == pos || !fixed[q]) {
+			continue;
+		}
+
+		if (value[q] == value[pos] && same_group(pos, q)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// how many cells of the problem are wrong, 0 means the problem is well stated
+int info_C::count_conflicts(){
+	int n = 0;
+
+	for (int pos = 0; pos < NUM_CELDAS; pos++) {
+		if (conflict(pos)) {
+			n++;
+		}
+	}
+
+	return n;
+}
+
+
 bool info_C::solve(int pos){
-	// hemos terminado
+	// every cell has been filled
 	if (pos == 36) {
 		return true;
 	}
 
-	// si esta fija, pasar a la siguiente
+	// a fixed cell keeps its value, go on with the next one
 	if (fixed[pos]) {
 		return solve(pos + 1);
 	}
 
-	// probar número del 1 al 6
+	// clear what a previous solve may have left here
+	value[pos] = 0;
+
+	// try the numbers 1 to 6
 	for (int numero=1; numero <= 6; numero++) {
-//			OutputDebugString(L"Valor = ");
 		if (EsValido (pos, numero)) {
 			value[pos] = numero;
 

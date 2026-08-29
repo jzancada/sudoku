@@ -27,6 +27,11 @@ public:
 	bool EsValido(int pos, int numero);
 	bool solve(int pos);
 	void zero();
+
+	/* checking of the problem being written by the user */
+	bool same_group(int a, int b);
+	bool conflict(int pos);
+	int  count_conflicts();
 };
 
 #endif

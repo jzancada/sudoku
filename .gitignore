@@ -1,0 +1,15 @@
+# C++Builder build output.
+# Everything under Win32 is generated, except the executable, which is kept
+# in the repository on purpose.
+Win32/*
+!Win32/Debug/
+Win32/Debug/*
+!Win32/Debug/sudoku.exe
+
+# C++Builder local / IDE state
+*.local
+*.identcache
+*.tvsconfig
+*.stat
+__history/
+__recovery/
