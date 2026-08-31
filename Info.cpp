@@ -6,115 +6,85 @@
 #pragma package(smart_init)
 
 //---------------------------------------------------------------------------
+/* empties the board */
 void info_C::zero(){
-	for (int n=0; n < NUM_CELDAS; n++) {
-		value[n] = 0;
-		fixed[n] = false;
-
-		celda_fila[n]       = n / 6;
-		celda_columna[n]    = n % 6;
-		celda_superCeldaFilaIni[n] = (celda_fila[n] / 2) * 2;
-		celda_superCeldaColIni [n] = (celda_columna[n] / 3) * 3;
+	for (int pos = 0; pos < NUM_CELLS; pos++) {
+		value[pos] = 0;
+		fixed[pos] = false;
 	}
 }
 
+/* a new board already holds the example problem, so that the application has
+   something to show as soon as it opens */
 info_C::info_C(){
 	zero();
 	set_example();
 }
 
+/* the example problem, one clue every three cells */
 void info_C::set_example(){
-set_Value_and_Fixed(0, 1);
-set_Value_and_Fixed(3, 4);
-set_Value_and_Fixed(6, 2);
-set_Value_and_Fixed(9, 5);
-set_Value_and_Fixed(12, 3);
-set_Value_and_Fixed(15, 6);
-set_Value_and_Fixed(20, 1);
-set_Value_and_Fixed(23, 2);
-set_Value_and_Fixed(26, 2);
-set_Value_and_Fixed(29, 4);
-set_Value_and_Fixed(32, 5);
-set_Value_and_Fixed(35, 3);
-
-/*
-Value[0] = 1;
-Value[3] = 4;
-Value[6] = 2;
-Value[9] = 5;
-Value[12] = 3;
-Value[15] = 6;
-Value[20] = 1;
-Value[23] = 2;
-Value[26] = 2;
-Value[29] = 4;
-Value[32] = 5;
-Value[35] = 3;*/
+	set_value( 0, 1);
+	set_value( 3, 4);
+	set_value( 6, 2);
+	set_value( 9, 5);
+	set_value(12, 3);
+	set_value(15, 6);
+	set_value(20, 1);
+	set_value(23, 2);
+	set_value(26, 2);
+	set_value(29, 4);
+	set_value(32, 5);
+	set_value(35, 3);
 }
 
-bool info_C::EsValido(int pos, int numero){
-	// check the row
-	for (int c = 0; c < 6; c++) {
-		int p = celda_fila[pos] * 6 + c;
-
-		if (value[p] == numero) {
-			return false;
-		}
+/* true when both cells share a row, a column or a block, that is, when the
+   rules of the game forbid them to hold the same value.
+   This is the only place where the rule is stated: is_valid and conflict are
+   both written on top of it, so they can never disagree about what the rules
+   of the board are */
+bool info_C::same_group(int a, int b){
+	if (row(a) == row(b)) {
+		return true;
 	}
 
-	// check the column
-	for (int f=0; f < 6; f++) {
-		int p = f * 6 + celda_columna[pos];
-
-		if (value[p] == numero)  {
-			return false;
-		}
+	if (col(a) == col(b)) {
+		return true;
 	}
 
-	// check the block, 2 rows x 3 columns
-	for (int f = celda_superCeldaFilaIni[pos];
-			f < celda_superCeldaFilaIni[pos]+2;
-			f++) {
-		for (int c = celda_superCeldaColIni[pos];
-			c < celda_superCeldaColIni[pos]+3;
-			c++) {
-			int p = f * 6 + c;
+	return block_row(a) == block_row(b)
+		&& block_col(a) == block_col(b);
+}
 
-			if (value[p] == numero) {
-				return false;
-			}
+/* true when val can be written into pos: no other cell that shares a group
+   with it holds that value already. This is the question the solver asks
+   before it writes anything.
+   The cell itself is skipped, so the answer does not depend on what pos
+   happens to hold at the time */
+bool info_C::is_valid(int pos, int val){
+	for (int q = 0; q < NUM_CELLS; q++) {
+		if (q == pos) {
+			continue;
+		}
+
+		if (value[q] == val && same_group(pos, q)) {
+			return false;
 		}
 	}
 
 	return true;
 }
 
-
-// true when both cells share a row, a column or a block, that is, when the
-// sudoku rules forbid them to hold the same value
-bool info_C::same_group(int a, int b){
-	if (celda_fila[a] == celda_fila[b]) {
-		return true;
-	}
-
-	if (celda_columna[a] == celda_columna[b]) {
-		return true;
-	}
-
-	return celda_superCeldaFilaIni[a] == celda_superCeldaFilaIni[b]
-		&& celda_superCeldaColIni [a] == celda_superCeldaColIni [b];
-}
-
-// true when the value the user wrote in this cell is repeated in another cell
-// of the same row, column or block.
-// Only the cells of the problem are compared, the ones filled in by solve()
-// are correct by construction and are ignored here
+/* true when the value the user wrote in this cell is repeated in another cell
+   of the same row, column or block.
+   Only the cells of the problem are compared. The ones filled in by solve()
+   passed is_valid on the way in, so they cannot be wrong, and comparing them
+   would paint the whole board red as soon as a clue is */
 bool info_C::conflict(int pos){
 	if (!fixed[pos] || value[pos] == 0) {
 		return false;
 	}
 
-	for (int q = 0; q < NUM_CELDAS; q++) {
+	for (int q = 0; q < NUM_CELLS; q++) {
 		if (q == pos || !fixed[q]) {
 			continue;
 		}
@@ -127,11 +97,12 @@ bool info_C::conflict(int pos){
 	return false;
 }
 
-// how many cells of the problem are wrong, 0 means the problem is well stated
+/* how many cells of the problem are wrong. 0 means the problem follows the
+   rules and can be handed to solve() */
 int info_C::count_conflicts(){
 	int n = 0;
 
-	for (int pos = 0; pos < NUM_CELDAS; pos++) {
+	for (int pos = 0; pos < NUM_CELLS; pos++) {
 		if (conflict(pos)) {
 			n++;
 		}
@@ -140,10 +111,14 @@ int info_C::count_conflicts(){
 	return n;
 }
 
-
+/* fills in the board from pos on, by backtracking: try a value, go on with
+   the next cell, and undo the choice when the rest of the board turns out to
+   have no solution.
+   The cells are walked in order, so pos is at once the cell being filled and
+   how far the search has got */
 bool info_C::solve(int pos){
 	// every cell has been filled
-	if (pos == 36) {
+	if (pos == NUM_CELLS) {
 		return true;
 	}
 
@@ -152,22 +127,23 @@ bool info_C::solve(int pos){
 		return solve(pos + 1);
 	}
 
-	// clear what a previous solve may have left here
+	// clear what a previous solve may have left here, so that a board with no
+	// solution is left empty rather than holding a stale answer
 	value[pos] = 0;
 
-	// try the numbers 1 to 6
-	for (int numero=1; numero <= 6; numero++) {
-		if (EsValido (pos, numero)) {
-			value[pos] = numero;
+	// try every value the board allows, 1 to 6
+	for (int val = 1; val <= BOARD_SIZE; val++) {
+		if (is_valid(pos, val)) {
+			value[pos] = val;
 
 			if (solve(pos + 1))
 				return true;
 
+			// that value led nowhere, take it back and try the next one
 			value[pos] = 0;
 		}
 	}
 
+	// no value fits here, so the choice made before this call was wrong
 	return false;
 }
-
-

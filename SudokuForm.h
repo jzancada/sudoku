@@ -67,9 +67,9 @@ __published:	// IDE-managed Components
 	void __fastcall BTestClick(TObject *Sender);
 	void __fastcall BHelpClick(TObject *Sender);
 private:	// User declarations
-	TButton*    btn_v [NUM_CELDAS];
-	TRectangle* mark_v[NUM_CELDAS];   /* background of every cell, drawn on top of the button */
-	int         cursorPos = 0;        /* cell currently selected, 0..NUM_CELDAS-1 */
+	TButton*    btn_v [NUM_CELLS];
+	TRectangle* mark_v[NUM_CELLS];   /* background of every cell, drawn on top of the button */
+	int         cursorPos = 0;        /* cell currently selected, 0..NUM_CELLS-1 */
 	info_C info;
 
 	void layout_board();

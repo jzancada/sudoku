@@ -85,7 +85,7 @@ __fastcall TSudokuForm::TSudokuForm(TComponent* Owner)
 	   which are created next, so that the selected cell is never covered */
 	draw_grid();
 
-	for (int i = 0; i < NUM_CELDAS; i++) {
+	for (int i = 0; i < NUM_CELLS; i++) {
 		btn_v[i]->StyledSettings  =
 			btn_v[i]->StyledSettings    >>  TStyledSetting::Size;
 
@@ -157,7 +157,7 @@ void TSudokuForm::layout_board(){
 		y[r] = y[r - 1] + CELL_SIZE + ((r % 2 == 0) ? GAP_BLOCK : GAP_CELL);
 	}
 
-	for (int i = 0; i < NUM_CELDAS; i++) {
+	for (int i = 0; i < NUM_CELLS; i++) {
 		btn_v[i]->SetBounds(x[i % 6], y[i / 6], CELL_SIZE, CELL_SIZE);
 	}
 
@@ -270,7 +270,7 @@ void TSudokuForm::draw_grid(){
 void TSudokuForm::refresh_panel(){
 	TButton *btn;
 
-	for (int i = 0; i < NUM_CELDAS; i++) {
+	for (int i = 0; i < NUM_CELLS; i++) {
 		btn = btn_v[i];
 
 		btn->Text = info.value[i];
