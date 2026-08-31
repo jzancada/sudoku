@@ -7,14 +7,14 @@
 #pragma hdrstop
 #include <System.StartUpCopy.hpp>
 //---------------------------------------------------------------------------
-USEFORM("Unit1.cpp", Form2);
+USEFORM("SudokuForm.cpp", SudokuForm);
 //---------------------------------------------------------------------------
 extern "C" int FMXmain()
 {
 	try
 	{
 		Application->Initialize();
-		Application->CreateForm(__classid(TForm2), &Form2);
+		Application->CreateForm(__classid(TSudokuForm), &SudokuForm);
 		Application->Run();
 	}
 	catch (Exception &exception)

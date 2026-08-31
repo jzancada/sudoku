@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 
-#ifndef Unit1H
-#define Unit1H
+#ifndef SudokuFormH
+#define SudokuFormH
 //---------------------------------------------------------------------------
 #include <System.Classes.hpp>
 #include <FMX.Controls.hpp>
@@ -14,7 +14,7 @@
 #include <FMX.Colors.hpp>
 #include <FMX.Objects.hpp>
 //---------------------------------------------------------------------------
-class TForm2 : public TForm
+class TSudokuForm : public TForm
 {
 __published:	// IDE-managed Components
 	TButton *Button_0;
@@ -73,6 +73,7 @@ private:	// User declarations
 	info_C info;
 
 	void layout_board();
+	void layout_side(float board_w, float board_h);
 	TRectangle* new_line(float x, float y, float w, float h);
 	void draw_grid();
 
@@ -81,9 +82,9 @@ private:	// User declarations
 	void show_help();
 	void do_solve();
 public:		// User declarations
-	__fastcall TForm2(TComponent* Owner);
+	__fastcall TSudokuForm(TComponent* Owner);
 };
 //---------------------------------------------------------------------------
-extern PACKAGE TForm2 *Form2;
+extern PACKAGE TSudokuForm *SudokuForm;
 //---------------------------------------------------------------------------
 #endif

@@ -6,11 +6,11 @@
 #include <Vcl.Graphics.hpp>
 #include <FMX.Dialogs.hpp>
 
-#include "Unit1.h"
+#include "SudokuForm.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 #pragma resource "*.fmx"
-TForm2 *Form2;
+TSudokuForm *SudokuForm;
 #include "info.h"
 
 /* cell background colors, translucent so the digit stays readable */
@@ -25,15 +25,19 @@ static const float       GRID_THIN       = 1.0f;   /* between two cells         
 static const float       GRID_THICK      = 4.0f;   /* between two blocks, and frame */
 
 /* geometry of the board, in pixels. The gaps hold the lines drawn by draw_grid */
-static const float CELL_W    = 97.0f;
-static const float CELL_H    = 41.0f;
+static const float CELL_SIZE = 41.0f;  /* the cells are square                */
 static const float GAP_CELL  = 3.0f;   /* between two cells of the same block */
 static const float GAP_BLOCK = 9.0f;   /* between two blocks                  */
 static const float BOARD_X   = 8.0f;   /* top left corner of the board        */
 static const float BOARD_Y   = 8.0f;
 
+/* the column of buttons at the right of the board */
+static const float SIDE_W    = 185.0f; /* width of the whole column        */
+static const float SIDE_H    = 41.0f;  /* height of one ordinary button    */
+static const float SIDE_GAP  = 8.0f;   /* between two buttons, and margins */
+
 //---------------------------------------------------------------------------
-__fastcall TForm2::TForm2(TComponent* Owner)
+__fastcall TSudokuForm::TSudokuForm(TComponent* Owner)
 	: TForm(Owner)
 {
 	btn_v[0]=Button_0;
@@ -85,14 +89,14 @@ __fastcall TForm2::TForm2(TComponent* Owner)
 		btn_v[i]->StyledSettings  =
 			btn_v[i]->StyledSettings    >>  TStyledSetting::Size;
 
-		btn_v[i]->TextSettings->Font->Size = btn_v[0]->TextSettings->Font->Size;
+		/* the digit is sized from the cell, so that it still fits when the cell
+		   size is changed */
+		btn_v[i]->TextSettings->Font->Size = CELL_SIZE * 0.7f;
 
 		/* the cell index is kept in the Tag */
 		btn_v[i]->Tag = i;
 		/* every cell shares the same click handler */
 		btn_v[i]->OnClick = Button_Click;
-
-		btn_v[i]->TextSettings->Font->Size = 30;
 
 		/* the cells must not take the keyboard focus, the form handles the keys */
 		btn_v[i]->CanFocus = false;
@@ -138,7 +142,7 @@ __fastcall TForm2::TForm2(TComponent* Owner)
 /* places the 36 cells on a regular grid. The board is 6 x 6 and its blocks are
    2 rows x 3 columns, so the wider gap goes after every 3rd column and after
    every 2nd row. Those gaps are where draw_grid paints the thick lines */
-void TForm2::layout_board(){
+void TSudokuForm::layout_board(){
 	float x[6];
 	float y[6];
 
@@ -146,23 +150,58 @@ void TForm2::layout_board(){
 	y[0] = BOARD_Y;
 
 	for (int c = 1; c < 6; c++) {
-		x[c] = x[c - 1] + CELL_W + ((c % 3 == 0) ? GAP_BLOCK : GAP_CELL);
+		x[c] = x[c - 1] + CELL_SIZE + ((c % 3 == 0) ? GAP_BLOCK : GAP_CELL);
 	}
 
 	for (int r = 1; r < 6; r++) {
-		y[r] = y[r - 1] + CELL_H + ((r % 2 == 0) ? GAP_BLOCK : GAP_CELL);
+		y[r] = y[r - 1] + CELL_SIZE + ((r % 2 == 0) ? GAP_BLOCK : GAP_CELL);
 	}
 
 	for (int i = 0; i < NUM_CELDAS; i++) {
-		btn_v[i]->SetBounds(x[i % 6], y[i / 6], CELL_W, CELL_H);
+		btn_v[i]->SetBounds(x[i % 6], y[i / 6], CELL_SIZE, CELL_SIZE);
 	}
 
 	/* the panel behind the board is fitted to it, with the same margin all around */
-	Panel1->SetBounds(0, 0, x[5] + CELL_W + BOARD_X, y[5] + CELL_H + BOARD_Y);
+	float board_w = x[5] + CELL_SIZE + BOARD_X;
+	float board_h = y[5] + CELL_SIZE + BOARD_Y;
+
+	Panel1->SetBounds(0, 0, board_w, board_h);
+
+	layout_side(board_w, board_h);
+}
+
+/* the buttons go to the right of the board, in a column as tall as it is.
+   They are placed from here and not in the designer, so that they follow the
+   board whatever the cell size is: the board is much narrower now that the
+   cells are square, and a fixed position would leave them far away from it */
+void TSudokuForm::layout_side(float board_w, float board_h){
+	float x      = board_w + SIDE_GAP;
+	float y      = BOARD_Y;
+	float bottom = board_h - BOARD_Y;
+	float half   = (SIDE_W - SIDE_GAP) / 2;   /* two buttons on the same row */
+
+	/* first row: empty the board, load the example */
+	BZero->SetBounds(x,                    y, half, SIDE_H);
+	BTest->SetBounds(x + half + SIDE_GAP,  y, half, SIDE_H);
+	y += SIDE_H + SIDE_GAP;
+
+	/* Solve is the main button, it gets a box twice as tall */
+	Button1->SetBounds(x, y, SIDE_W, 2 * SIDE_H + SIDE_GAP);
+	y += 2 * SIDE_H + 2 * SIDE_GAP;
+
+	BHelp->SetBounds(x, y, SIDE_W, SIDE_H);
+	y += SIDE_H + SIDE_GAP;
+
+	/* the warning line fills what is left, down to the bottom of the board */
+	LStatus->SetBounds(x, y, SIDE_W, bottom - y);
+
+	/* and the form is fitted to the board plus the column of buttons */
+	ClientWidth  = (int)(x + SIDE_W + SIDE_GAP);
+	ClientHeight = (int)board_h;
 }
 
 /* one line of the board, laid on top of the form and transparent to the mouse */
-TRectangle* TForm2::new_line(float x, float y, float w, float h){
+TRectangle* TSudokuForm::new_line(float x, float y, float w, float h){
 	TRectangle *line = new TRectangle(this);
 
 	line->Parent  = btn_v[0]->Parent;
@@ -180,7 +219,7 @@ TRectangle* TForm2::new_line(float x, float y, float w, float h){
    line is simply painted in the middle of the gap it belongs to.
    The geometry is read from the cells themselves, so moving them in the
    designer moves the lines as well */
-void TForm2::draw_grid(){
+void TSudokuForm::draw_grid(){
 	float left   = btn_v[0]->Position->X;
 	float top    = btn_v[0]->Position->Y;
 	float right  = btn_v[5]->Position->X  + btn_v[5]->Width;
@@ -228,7 +267,7 @@ void TForm2::draw_grid(){
 	}
 }
 
-void TForm2::refresh_panel(){
+void TSudokuForm::refresh_panel(){
 	TButton *btn;
 
 	for (int i = 0; i < NUM_CELDAS; i++) {
@@ -285,7 +324,7 @@ void TForm2::refresh_panel(){
 }
 
 /* moves the selected cell, dRow / dCol are -1, 0 or +1 */
-void TForm2::move_cursor(int dRow, int dCol){
+void TSudokuForm::move_cursor(int dRow, int dCol){
 	int row = cursorPos / 6 + dRow;
 	int col = cursorPos % 6 + dCol;
 
@@ -300,7 +339,7 @@ void TForm2::move_cursor(int dRow, int dCol){
 }
 
 //---------------------------------------------------------------------------
-void __fastcall TForm2::Button_Click(TObject *Sender)
+void __fastcall TSudokuForm::Button_Click(TObject *Sender)
 {
 	TButton *btn = dynamic_cast<TButton*>(Sender);
 
@@ -315,7 +354,7 @@ void __fastcall TForm2::Button_Click(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TForm2::FormKeyDown(TObject *Sender, WORD &Key, System::WideChar &KeyChar,
+void __fastcall TSudokuForm::FormKeyDown(TObject *Sender, WORD &Key, System::WideChar &KeyChar,
 		  TShiftState Shift)
 {
 	/* the arrow keys move the selected cell.
@@ -371,14 +410,14 @@ void __fastcall TForm2::FormKeyDown(TObject *Sender, WORD &Key, System::WideChar
 //---------------------------------------------------------------------------
 
 
-void __fastcall TForm2::BSolveClick(TObject *Sender)
+void __fastcall TSudokuForm::BSolveClick(TObject *Sender)
 {
 	do_solve();
 }
 //---------------------------------------------------------------------------
 
 
-void __fastcall TForm2::BZeroClick(TObject *Sender)
+void __fastcall TSudokuForm::BZeroClick(TObject *Sender)
 {
 	info.zero();
 
@@ -394,7 +433,7 @@ void __fastcall TForm2::BZeroClick(TObject *Sender)
 /* solves the board, used by the Solve button and by the s key.
    The problem is checked first, so that solve() is only called on a problem
    that follows the rules */
-void TForm2::do_solve(){
+void TSudokuForm::do_solve(){
 	if (info.count_conflicts() > 0) {
 		ShowMessage(L"The problem is wrong: a value is repeated in a row, a column "
 					L"or a block.\n\nFix the cells drawn in red and try again.");
@@ -413,7 +452,7 @@ void TForm2::do_solve(){
 
 
 /* instructions, shown by the Help button and by the h key */
-void TForm2::show_help(){
+void TSudokuForm::show_help(){
 	ShowMessage(
 		L"SUDOKU 6 x 6\n"
 		/* __DATE__ is replaced by the compiler with the day the program was
@@ -453,14 +492,14 @@ void TForm2::show_help(){
 //---------------------------------------------------------------------------
 
 
-void __fastcall TForm2::BHelpClick(TObject *Sender)
+void __fastcall TSudokuForm::BHelpClick(TObject *Sender)
 {
 	show_help();
 }
 //---------------------------------------------------------------------------
 
 
-void __fastcall TForm2::BTestClick(TObject *Sender)
+void __fastcall TSudokuForm::BTestClick(TObject *Sender)
 {
 	info.zero();
 	info.set_example();
